@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .forms import UsuarioRegistroForm
+from .forms import UsuarioRegistroForm, CrearGestorForm, CrearAnalistaForm
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
 from .models import Usuario, Gestor, Analista
@@ -100,25 +100,45 @@ def dashboard_cliente(request):
 
 
 # Ejemplo de creación de un Gestor al registrar un usuario con rol GESTOR
+@rol_requerido(['ADMINISTRADOR'])
 def crear_gestor(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        nuevo_usuario = Usuario.objects.create_user(
-            username=username,
-            password=password,
-            rol='GESTOR'
-        )
-        Gestor.objects.create(usuario=nuevo_usuario)
+        form = CrearGestorForm(request.POST)
+        if form.is_valid():
+            # Crear el usuario con rol GESTOR
+            usuario = form.save(commit=False)
+            usuario.rol = 'GESTOR'
+            usuario.save()
+            
+            # Crear el registro de Gestor asociado
+            cargo = form.cleaned_data.get('cargo', '')
+            Gestor.objects.create(usuario=usuario, cargo=cargo)
+            
+            messages.success(request, f'Gestor {usuario.username} creado exitosamente.')
+            return redirect('dashboard_admin')
+    else:
+        form = CrearGestorForm()
+    
+    return render(request, 'crear_gestor.html', {'form': form})
 
 
+@rol_requerido(['ADMINISTRADOR'])
 def crear_analista(request):
     if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        nuevo_usuario = Usuario.objects.create_user(
-            username=username,
-            password=password,
-            rol='ANALISTA'
-        )
-        Analista.objects.create(usuario=nuevo_usuario)
+        form = CrearAnalistaForm(request.POST)
+        if form.is_valid():
+            # Crear el usuario con rol ANALISTA
+            usuario = form.save(commit=False)
+            usuario.rol = 'ANALISTA'
+            usuario.save()
+            
+            # Crear el registro de Analista asociado
+            especialidad = form.cleaned_data.get('especialidad', '')
+            Analista.objects.create(usuario=usuario, especialidad=especialidad)
+            
+            messages.success(request, f'Analista {usuario.username} creado exitosamente.')
+            return redirect('dashboard_admin')
+    else:
+        form = CrearAnalistaForm()
+    
+    return render(request, 'crear_analista.html', {'form': form})

@@ -1,12 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard de administradores</title>
 </head>
 <body>
-    <h1>Este es el Inicio del sistema para administradores</h1>
+    <h1>Panel de Administrador</h1>
+    <p>Bienvenido, {{ user.first_name }} {{ user.last_name }}</p>
+
+    <h2>Acciones de Administración</h2>
+    <ul>
+        <li><a href="{% url 'crear_gestor' %}">Crear Gestor</a></li>
+        <li><a href="{% url 'crear_analista' %}">Crear Analista</a></li>
+    </ul>
+
+    {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+                <p style="color:green;">{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
     <form method="post" action="{% url 'logout' %}" style="display:inline;">
         {% csrf_token %}
         <button type="submit">Cerrar sesión</button>

@@ -9,11 +9,13 @@ urlpatterns = [
     path('', views.inicio, name='homepage'),
     path('registro/', views.registro_usuario, name='registro'),
     path('login/', views.UsuarioLoginView.as_view(), name='login'),
-    path('login_interno/', views.login_interno, name='login_interno'),
+    path('login/interno/', views.login_interno, name='login_interno'),
     path('logout/', LogoutView.as_view(next_page='login'), name='logout'),
 
     path('dashboard/usuario/', views.dashboard_usuario, name='dashboard_usuario'),
     path('dashboard/gestor/', views.dashboard_gestor, name='dashboard_gestor'),
     path('dashboard/analista/', views.dashboard_analista, name='dashboard_analista'),
     path('dashboard/admin/', views.dashboard_admin, name='dashboard_admin'),
+    path('dashboard/admin/crear-gestor/', views.crear_gestor, name='crear_gestor'),
+    path('dashboard/admin/crear-analista/', views.crear_analista, name='crear_analista'),
 ]
