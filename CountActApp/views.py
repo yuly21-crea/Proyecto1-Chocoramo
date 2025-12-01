@@ -1,11 +1,12 @@
-from django.shortcuts import render, redirect
-from .forms import UsuarioRegistroForm, CrearGestorForm, CrearAnalistaForm
+from django.shortcuts import render, redirect, get_object_or_404
+from .forms import UsuarioRegistroForm, CrearGestorForm, CrearAnalistaForm, CrearPQRSForm
 from django.contrib.auth.views import LoginView
 from django.urls import reverse_lazy
-from .models import Usuario, Gestor, Analista
+from .models import Usuario, Gestor, Analista, PQRS, HistorialEstadoPQRS
 from django.contrib.auth import authenticate, login
 from django.contrib import messages
 from django.http import HttpResponseForbidden
+from django.db.models import Q
 
 
 def inicio(request):
@@ -73,17 +74,43 @@ def rol_requerido(roles_permitidos):
 # --- DASHBOARDS DE PRUEBA ---
 @rol_requerido(['USUARIO'])
 def dashboard_usuario(request):
-    return render(request, 'dashboards/dashboard_usuario.html')
+    # Obtener todas las PQRS del usuario actual
+    pqrs_lista = PQRS.objects.filter(cliente=request.user).order_by('-fecha_creacion')
+    context = {
+        'pqrs_lista': pqrs_lista,
+    }
+    return render(request, 'dashboards/dashboard_usuario.html', context)
 
 
 @rol_requerido(['GESTOR'])
 def dashboard_gestor(request):
-    return render(request, 'dashboards/dashboard_gestor.html')
+    # Obtener todas las PQRS en estado ENVIADA (sin asignar a analista)
+    pqrs_sin_asignar = PQRS.objects.filter(estado='ENVIADA').order_by('-fecha_creacion')
+    pqrs_asignadas = PQRS.objects.filter(
+        Q(estado='ASIGNADA') | Q(estado='EN_PROCESO')
+    ).order_by('-fecha_creacion')
+    
+    context = {
+        'pqrs_sin_asignar': pqrs_sin_asignar,
+        'pqrs_asignadas': pqrs_asignadas,
+    }
+    return render(request, 'dashboards/dashboard_gestor.html', context)
 
 
 @rol_requerido(['ANALISTA'])
 def dashboard_analista(request):
-    return render(request, 'dashboards/dashboard_analista.html')
+    try:
+        # Obtener el perfil de Analista del usuario actual
+        analista = Analista.objects.get(usuario=request.user)
+        # Obtener todas las PQRS asignadas a este analista
+        pqrs_asignadas = PQRS.objects.filter(analista_asignado=analista).order_by('-fecha_creacion')
+    except Analista.DoesNotExist:
+        pqrs_asignadas = []
+    
+    context = {
+        'pqrs_asignadas': pqrs_asignadas,
+    }
+    return render(request, 'dashboards/dashboard_analista.html', context)
 
 
 @rol_requerido(['ADMINISTRADOR'])
@@ -94,6 +121,129 @@ def dashboard_admin(request):
 # Alias para compatibilidad: dashboard_cliente -> dashboard_usuario
 def dashboard_cliente(request):
     return dashboard_usuario(request)
+
+
+# ===================== FUNCIONES PARA CREAR Y GESTIONAR PQRS =====================
+
+@rol_requerido(['USUARIO'])
+def crear_pqrs(request):
+    """Vista para que el usuario cree una nueva PQRS"""
+    if request.method == 'POST':
+        form = CrearPQRSForm(request.POST, request.FILES)
+        if form.is_valid():
+            pqrs = form.save(commit=False)
+            pqrs.cliente = request.user  # Asignar el usuario actual como cliente
+            pqrs.estado = 'ENVIADA'  # Estado inicial
+            pqrs.save()
+            
+            # Crear un registro en el historial
+            HistorialEstadoPQRS.objects.create(
+                pqrs=pqrs,
+                estado_anterior='NUEVA',
+                estado_nuevo='ENVIADA',
+                cambiado_por=request.user
+            )
+            
+            messages.success(request, 'Tu PQRS ha sido creada exitosamente.')
+            return redirect('dashboard_usuario')
+    else:
+        form = CrearPQRSForm()
+    
+    return render(request, 'crear_pqrs.html', {'form': form})
+
+
+@rol_requerido(['GESTOR'])
+def asignar_pqrs(request, pqrs_id):
+    """Vista para que el gestor asigne una PQRS a un analista"""
+    pqrs = get_object_or_404(PQRS, id=pqrs_id)
+    
+    if request.method == 'POST':
+        analista_id = request.POST.get('analista_id')
+        if analista_id:
+            try:
+                analista = Analista.objects.get(id=analista_id)
+                # Cambiar estado y asignar analista
+                estado_anterior = pqrs.estado
+                pqrs.analista_asignado = analista
+                pqrs.estado = 'ASIGNADA'
+                pqrs.save()
+                
+                # Registrar el cambio en el historial
+                HistorialEstadoPQRS.objects.create(
+                    pqrs=pqrs,
+                    estado_anterior=estado_anterior,
+                    estado_nuevo='ASIGNADA',
+                    cambiado_por=request.user
+                )
+                
+                messages.success(request, f'PQRS #{pqrs.id} asignada a {analista.usuario.first_name} {analista.usuario.last_name}.')
+                return redirect('dashboard_gestor')
+            except Analista.DoesNotExist:
+                messages.error(request, 'El analista seleccionado no existe.')
+    
+    # Obtener lista de analistas activos
+    analistas = Analista.objects.filter(activo=True)
+    context = {
+        'pqrs': pqrs,
+        'analistas': analistas,
+    }
+    return render(request, 'asignar_pqrs.html', context)
+
+
+@rol_requerido(['ANALISTA'])
+def actualizar_estado_pqrs(request, pqrs_id):
+    """Vista para que el analista actualice el estado de una PQRS"""
+    pqrs = get_object_or_404(PQRS, id=pqrs_id)
+    
+    # Verificar que la PQRS está asignada a este analista
+    try:
+        analista = Analista.objects.get(usuario=request.user)
+        if pqrs.analista_asignado != analista:
+            return HttpResponseForbidden("No tienes permiso para actualizar esta PQRS.")
+    except Analista.DoesNotExist:
+        return HttpResponseForbidden("No eres un analista registrado.")
+    
+    if request.method == 'POST':
+        nuevo_estado = request.POST.get('estado')
+        if nuevo_estado in dict(PQRS.ESTADO_CHOICES):
+            estado_anterior = pqrs.estado
+            pqrs.estado = nuevo_estado
+            pqrs.save()
+            
+            # Registrar el cambio en el historial
+            HistorialEstadoPQRS.objects.create(
+                pqrs=pqrs,
+                estado_anterior=estado_anterior,
+                estado_nuevo=nuevo_estado,
+                cambiado_por=request.user
+            )
+            
+            messages.success(request, f'Estado de la PQRS #{pqrs.id} actualizado a {nuevo_estado}.')
+            return redirect('dashboard_analista')
+    
+    context = {
+        'pqrs': pqrs,
+        'estados': PQRS.ESTADO_CHOICES,
+    }
+    return render(request, 'actualizar_estado_pqrs.html', context)
+
+
+@rol_requerido(['USUARIO', 'GESTOR', 'ANALISTA', 'ADMINISTRADOR'])
+def detalle_pqrs(request, pqrs_id):
+    """Vista para ver el detalle de una PQRS"""
+    pqrs = get_object_or_404(PQRS, id=pqrs_id)
+    
+    # Verificar que el usuario es el cliente o es personal autorizado
+    if request.user != pqrs.cliente and request.user.rol == 'USUARIO':
+        return HttpResponseForbidden("No tienes permiso para ver esta PQRS.")
+    
+    historial = pqrs.historial_estados.all().order_by('-fecha_cambio')
+    
+    context = {
+        'pqrs': pqrs,
+        'historial': historial,
+    }
+    return render(request, 'detalle_pqrs.html', context)
 
 
 

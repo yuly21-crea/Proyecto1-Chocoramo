@@ -1,15 +1,156 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de gestores</title>
-</head>
-<body>
-    <h1>Este es el Inicio del sistema para gestores</h1>
-    <form method="post" action="{% url 'logout' %}" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit">Cerrar sesión</button>
-    </form>
-</body>
-</html>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Gestor{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <h2 class="mb-4">Mi Dashboard - Gestor</h2>
+
+    <!-- Resumen -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card text-center border-danger">
+                <div class="card-body">
+                    <h5 class="card-title">PQRS Sin Asignar</h5>
+                    <h2 class="text-danger">{{ pqrs_sin_asignar|length }}</h2>
+                    <p class="text-muted">Pendientes de asignación</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h5 class="card-title">PQRS Asignadas</h5>
+                    <h2 class="text-info">{{ pqrs_asignadas|length }}</h2>
+                    <p class="text-muted">En análisis</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h5 class="card-title">Total</h5>
+                    <h2 class="text-success">{{ pqrs_sin_asignar|add:pqrs_asignadas|length }}</h2>
+                    <p class="text-muted">Todas las PQRS</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PQRS Sin Asignar -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">PQRS SIN ASIGNAR ({{ pqrs_sin_asignar|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if pqrs_sin_asignar %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Tipo</th>
+                                <th>Asunto</th>
+                                <th>Cliente</th>
+                                <th>Fecha Creación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pqrs in pqrs_sin_asignar %}
+                                <tr>
+                                    <td><strong>#{{ pqrs.id }}</strong></td>
+                                    <td>
+                                        {% if pqrs.tipo == 'P' %}
+                                            <span class="badge bg-info">Petición</span>
+                                        {% elif pqrs.tipo == 'Q' %}
+                                            <span class="badge bg-warning text-dark">Queja</span>
+                                        {% elif pqrs.tipo == 'R' %}
+                                            <span class="badge bg-danger">Reclamo</span>
+                                        {% elif pqrs.tipo == 'S' %}
+                                            <span class="badge bg-success">Sugerencia</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pqrs.asunto }}</td>
+                                    <td>{{ pqrs.cliente.first_name }} {{ pqrs.cliente.last_name }}</td>
+                                    <td>{{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'asignar_pqrs' pqrs.id %}" class="btn btn-sm btn-warning">
+                                            Asignar
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-success text-center">
+                    <p class="mb-0">Excelente! No hay PQRS sin asignar.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- PQRS Asignadas -->
+    <div class="card shadow mb-4">
+        <div class="card-header bg-info text-white">
+            <h5 class="mb-0">PQRS ASIGNADAS ({{ pqrs_asignadas|length }})</h5>
+        </div>
+        <div class="card-body">
+            {% if pqrs_asignadas %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Asunto</th>
+                                <th>Analista Asignado</th>
+                                <th>Estado</th>
+                                <th>Cliente</th>
+                                <th>Fecha Creación</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pqrs in pqrs_asignadas %}
+                                <tr>
+                                    <td><strong>#{{ pqrs.id }}</strong></td>
+                                    <td>{{ pqrs.asunto }}</td>
+                                    <td>
+                                        {% if pqrs.analista_asignado %}
+                                            {{ pqrs.analista_asignado.usuario.first_name }} {{ pqrs.analista_asignado.usuario.last_name }}
+                                        {% else %}
+                                            <span class="text-muted">Sin asignar</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if pqrs.estado == 'ASIGNADA' %}
+                                            <span class="badge bg-primary">Asignada</span>
+                                        {% elif pqrs.estado == 'EN_PROCESO' %}
+                                            <span class="badge bg-info">En Proceso</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pqrs.cliente.first_name }} {{ pqrs.cliente.last_name }}</td>
+                                    <td>{{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <p class="mb-0">No hay PQRS asignadas en este momento.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Cerrar sesión</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

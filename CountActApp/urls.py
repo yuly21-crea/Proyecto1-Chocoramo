@@ -18,4 +18,10 @@ urlpatterns = [
     path('dashboard/admin/', views.dashboard_admin, name='dashboard_admin'),
     path('dashboard/admin/crear-gestor/', views.crear_gestor, name='crear_gestor'),
     path('dashboard/admin/crear-analista/', views.crear_analista, name='crear_analista'),
+    
+    # PQRS - Rutas
+    path('pqrs/crear/', views.crear_pqrs, name='crear_pqrs'),
+    path('pqrs/<int:pqrs_id>/detalle/', views.detalle_pqrs, name='detalle_pqrs'),
+    path('pqrs/<int:pqrs_id>/asignar/', views.asignar_pqrs, name='asignar_pqrs'),
+    path('pqrs/<int:pqrs_id>/actualizar-estado/', views.actualizar_estado_pqrs, name='actualizar_estado_pqrs'),
 ]

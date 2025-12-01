@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Actualizar Estado PQRS - ChocoPQRS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark">
+                    <h3 class="mb-0">Actualizar Estado de PQRS</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3">Información de la PQRS:</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>ID:</strong> #{{ pqrs.id }}</p>
+                            <p><strong>Tipo:</strong> <span class="badge bg-secondary">{{ pqrs.get_tipo_display }}</span></p>
+                            <p><strong>Asunto:</strong> {{ pqrs.asunto }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Cliente:</strong> {{ pqrs.cliente.first_name }} {{ pqrs.cliente.last_name }}</p>
+                            <p><strong>Estado Actual:</strong> <span class="badge bg-info">{{ pqrs.get_estado_display }}</span></p>
+                            <p><strong>Fecha Creación:</strong> {{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h5 class="mb-3">Cambiar Estado:</h5>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="form-group mb-3">
+                            <label for="estado" class="form-label">Nuevo Estado</label>
+                            <select name="estado" id="estado" class="form-select" required>
+                                <option value="">-- Selecciona un estado --</option>
+                                {% for valor, etiqueta in estados %}
+                                    <option value="{{ valor }}" {% if valor == pqrs.estado %}selected{% endif %}>
+                                        {{ etiqueta }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-success">Actualizar</button>
+                            <a href="{% url 'dashboard_analista' %}" class="btn btn-secondary">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
