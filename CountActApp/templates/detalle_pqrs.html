@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Detalle PQRS - ChocoPQRS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0">Detalles de PQRS #{{ pqrs.id }}</h3>
+                        <span class="badge bg-light text-dark fs-6">{{ pqrs.get_estado_display }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Información General -->
+                    <h5 class="mb-3">Información General</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>Tipo:</strong> <span class="badge bg-secondary">{{ pqrs.get_tipo_display }}</span></p>
+                            <p><strong>Asunto:</strong> {{ pqrs.asunto }}</p>
+                            <p><strong>Fecha de Creación:</strong> {{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Cliente:</strong> {{ pqrs.cliente.first_name }} {{ pqrs.cliente.last_name }}</p>
+                            <p><strong>Email:</strong> {{ pqrs.cliente.email }}</p>
+                            <p><strong>Teléfono:</strong> {{ pqrs.cliente.telefono }}</p>
+                        </div>
+                    </div>
+
+                    <!-- Descripción -->
+                    <h5 class="mb-3">Descripción</h5>
+                    <div class="alert alert-light border mb-4">
+                        {{ pqrs.descripcion|linebreaks }}
+                    </div>
+
+                    <!-- Asignación -->
+                    {% if pqrs.analista_asignado %}
+                        <h5 class="mb-3">Asignación</h5>
+                        <div class="alert alert-info mb-4">
+                            <p class="mb-0"><strong>Analista Asignado:</strong> {{ pqrs.analista_asignado.usuario.first_name }} {{ pqrs.analista_asignado.usuario.last_name }}</p>
+                            {% if pqrs.analista_asignado.especialidad %}<p class="mb-0"><strong>Especialidad:</strong> {{ pqrs.analista_asignado.especialidad }}</p>{% endif %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Archivo Adjunto -->
+                    {% if pqrs.archivo_adjunto %}
+                        <h5 class="mb-3">Archivo Adjunto</h5>
+                        <div class="mb-4">
+                            <a href="{{ pqrs.archivo_adjunto.url }}" class="btn btn-sm btn-info" download>
+                                📥 Descargar archivo
+                            </a>
+                        </div>
+                    {% endif %}
+
+                    <!-- Historial de Estados -->
+                    <h5 class="mb-3">Historial de Cambios</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Estado Anterior</th>
+                                    <th>Estado Nuevo</th>
+                                    <th>Cambio Realizado por</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for cambio in historial %}
+                                    <tr>
+                                        <td>{{ cambio.fecha_cambio|date:"d/m/Y H:i" }}</td>
+                                        <td>
+                                            {% if cambio.estado_anterior == 'NUEVA' %}
+                                                <span class="badge bg-secondary">{{ cambio.estado_anterior }}</span>
+                                            {% else %}
+                                                {{ cambio.get_estado_anterior_display|default:cambio.estado_anterior }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-primary">{{ cambio.estado_nuevo }}</span>
+                                        </td>
+                                        <td>{{ cambio.cambiado_por.first_name }} {{ cambio.cambiado_por.last_name }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted">No hay cambios registrados</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <hr>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'dashboard_usuario' %}" class="btn btn-secondary">Volver</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

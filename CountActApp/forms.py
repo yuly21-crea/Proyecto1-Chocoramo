@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
-from .models import Usuario, Gestor, Analista
+from .models import Usuario, Gestor, Analista, PQRS
 
 
 class UsuarioRegistroForm(UserCreationForm):
@@ -125,3 +125,22 @@ class CrearAnalistaForm(UserCreationForm):
         super().__init__(*args, **kwargs)
         self.fields['password1'].help_text = 'Escribe una contraseña segura.'
         self.fields['password2'].help_text = 'Repite la contraseña para confirmar.'
+
+
+class CrearPQRSForm(forms.ModelForm):
+    """Formulario para que usuarios creen PQRS"""
+    class Meta:
+        model = PQRS
+        fields = ['tipo', 'asunto', 'descripcion', 'archivo_adjunto']
+        labels = {
+            'tipo': 'Tipo de solicitud',
+            'asunto': 'Asunto',
+            'descripcion': 'Descripción detallada',
+            'archivo_adjunto': 'Archivo adjunto (opcional)',
+        }
+        widgets = {
+            'tipo': forms.Select(attrs={'class': 'form-control'}),
+            'asunto': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Resumen breve'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 6, 'placeholder': 'Describe tu solicitud detalladamente'}),
+            'archivo_adjunto': forms.FileInput(attrs={'class': 'form-control'}),
+        }

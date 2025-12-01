@@ -1,15 +1,131 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard de usuarios</title>
-</head>
-<body>
-    <h1>Este es el Inicio del sistema para usuarios</h1>
-    <form method="post" action="{% url 'logout' %}" style="display:inline;">
-        {% csrf_token %}
-        <button type="submit">Cerrar sesión</button>
-    </form>
-</body>
-</html>
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Usuario{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>Mi Dashboard - Usuario</h2>
+                <a href="{% url 'crear_pqrs' %}" class="btn btn-primary btn-lg">
+                    Crear Nueva PQRS
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumen de PQRS -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Total de PQRS</h5>
+                    <h2 class="text-primary">{{ pqrs_lista|length }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Pendientes</h5>
+                    <h2 class="text-warning">
+                        {{ pqrs_lista|dictsort:"estado"|length }}
+                    </h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">En Proceso</h5>
+                    <h2 class="text-info">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h5 class="card-title">Resueltas</h5>
+                    <h2 class="text-success">0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de PQRS -->
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Mis PQRS</h5>
+        </div>
+        <div class="card-body">
+            {% if pqrs_lista %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Tipo</th>
+                                <th>Asunto</th>
+                                <th>Estado</th>
+                                <th>Fecha Creación</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for pqrs in pqrs_lista %}
+                                <tr>
+                                    <td><strong>#{{ pqrs.id }}</strong></td>
+                                    <td>
+                                        {% if pqrs.tipo == 'P' %}
+                                            <span class="badge bg-info">Petición</span>
+                                        {% elif pqrs.tipo == 'Q' %}
+                                            <span class="badge bg-warning text-dark">Queja</span>
+                                        {% elif pqrs.tipo == 'R' %}
+                                            <span class="badge bg-danger">Reclamo</span>
+                                        {% elif pqrs.tipo == 'S' %}
+                                            <span class="badge bg-success">Sugerencia</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pqrs.asunto }}</td>
+                                    <td>
+                                        {% if pqrs.estado == 'ENVIADA' %}
+                                            <span class="badge bg-secondary">Enviada</span>
+                                        {% elif pqrs.estado == 'ASIGNADA' %}
+                                            <span class="badge bg-primary">Asignada</span>
+                                        {% elif pqrs.estado == 'EN_PROCESO' %}
+                                            <span class="badge bg-info">En Proceso</span>
+                                        {% elif pqrs.estado == 'RESUELTA' %}
+                                            <span class="badge bg-success">Resuelta</span>
+                                        {% elif pqrs.estado == 'CERRADA' %}
+                                            <span class="badge bg-dark">Cerrada</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'detalle_pqrs' pqrs.id %}" class="btn btn-sm btn-info">
+                                            Ver Detalle
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <p class="mb-0">No tienes PQRS creadas. ¡Crea una ahora!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Cerrar sesión</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

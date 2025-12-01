@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Asignar PQRS - ChocoPQRS{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0">Asignar PQRS a Analista</h3>
+                </div>
+                <div class="card-body">
+                    <h5 class="mb-3">Detalles de la PQRS:</h5>
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <p><strong>ID:</strong> #{{ pqrs.id }}</p>
+                            <p><strong>Tipo:</strong> <span class="badge bg-secondary">{{ pqrs.get_tipo_display }}</span></p>
+                            <p><strong>Asunto:</strong> {{ pqrs.asunto }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Cliente:</strong> {{ pqrs.cliente.first_name }} {{ pqrs.cliente.last_name }}</p>
+                            <p><strong>Email:</strong> {{ pqrs.cliente.email }}</p>
+                            <p><strong>Fecha:</strong> {{ pqrs.fecha_creacion|date:"d/m/Y H:i" }}</p>
+                        </div>
+                    </div>
+                    
+                    <p><strong>Descripción:</strong></p>
+                    <div class="alert alert-light border">
+                        {{ pqrs.descripcion }}
+                    </div>
+
+                    <hr>
+
+                    <h5 class="mb-3">Seleccionar Analista:</h5>
+                    
+                    {% if analistas %}
+                        <form method="post">
+                            {% csrf_token %}
+                            
+                            <div class="form-group mb-3">
+                                <label for="analista_id" class="form-label">Analista</label>
+                                <select name="analista_id" id="analista_id" class="form-select" required>
+                                    <option value="">-- Selecciona un analista --</option>
+                                    {% for analista in analistas %}
+                                        <option value="{{ analista.id }}">
+                                            {{ analista.usuario.first_name }} {{ analista.usuario.last_name }}
+                                            {% if analista.especialidad %} ({{ analista.especialidad }}){% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-success">Asignar</button>
+                                <a href="{% url 'dashboard_gestor' %}" class="btn btn-secondary">Cancelar</a>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            No hay analistas disponibles en este momento.
+                        </div>
+                        <a href="{% url 'dashboard_gestor' %}" class="btn btn-secondary">Volver</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

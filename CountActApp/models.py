@@ -32,6 +32,19 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return self.email
+    
+    def get_rol_display(self):
+        """Retorna el nombre legible del rol"""
+        return dict(self.rol_choices)[self.rol] if self.rol else 'Sin rol'
+    
+    @property
+    def rol_choices(self):
+        return [
+            ('USUARIO', 'Usuario'),
+            ('GESTOR', 'Gestor'),
+            ('ANALISTA', 'Analista'),
+            ('ADMINISTRADOR', 'Administrador'),
+        ]
 
 
 # ---------------------------------------
